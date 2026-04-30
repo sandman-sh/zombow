@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zombow — Survive the Horde</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='50' font-size='50'>🏹</text></svg>" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Creepster&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; background: #0a0a0a; font-family: 'Inter', system-ui, sans-serif; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+    @keyframes drip { 0% { transform: scaleY(0); } 100% { transform: scaleY(1); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes shake { 0%,100%{ transform:translate(-50%,-50%); } 20%{ transform:translate(-48%,-52%); } 40%{ transform:translate(-52%,-48%); } 60%{ transform:translate(-48%,-50%); } 80%{ transform:translate(-52%,-52%); } }
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loader" style="
+    position: fixed; inset: 0; z-index: 9999;
+    background: linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 30%, #a5d6a7 60%, #81c784 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity 0.8s ease;
+  ">
+    <!-- Forest silhouette decoration -->
+    <div style="position:absolute; bottom:0; left:0; right:0; height:120px; opacity:0.3;">
+      <svg width="100%" height="120" viewBox="0 0 1200 120" preserveAspectRatio="none" fill="#2e7d32">
+        <polygon points="0,120 50,60 80,90 120,40 160,80 200,30 240,70 280,20 320,65 360,35 400,75 440,25 480,60 520,15 560,55 600,10 640,50 680,30 720,70 760,20 800,55 840,35 880,65 920,15 960,50 1000,30 1040,60 1080,20 1120,55 1160,35 1200,50 1200,120"/>
+      </svg>
+    </div>
+    <!-- Fog overlay -->
+    <div style="position:absolute; inset:0; background: radial-gradient(ellipse at 50% 80%, rgba(255,255,255,0.4) 0%, transparent 70%);"></div>
+    <div style="font-family: 'Creepster', cursive; font-size: 72px; color: #c62828; text-shadow: 0 0 30px rgba(198,40,40,0.4), 0 0 60px rgba(255,255,255,0.8), 0 4px 0 #8e0000; margin-bottom: 8px; letter-spacing: 6px; z-index: 1;">
+      ZOMBOW
+    </div>
+    <div style="font-size: 13px; color: #1b5e20; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 40px; z-index: 1;">
+      Survive the Horde
+    </div>
+    <div style="position: relative; width: 40px; height: 40px; margin-bottom: 24px; z-index: 1;">
+      <div style="
+        width: 40px; height: 40px; border-radius: 50%;
+        border: 3px solid rgba(46,125,50,0.3);
+        border-top-color: #1b5e20;
+        animation: spin 0.8s linear infinite;
+      "></div>
+    </div>
+    <div id="loader-status" style="font-size: 14px; color: #1b5e20; font-weight: 500; margin-bottom: 16px; z-index: 1;">
+      Initializing…
+    </div>
+    <div style="width: 220px; height: 6px; border-radius: 6px; background: rgba(46,125,50,0.2); overflow: hidden; z-index: 1;">
+      <div id="loader-bar" style="
+        width: 0%; height: 100%; border-radius: 6px;
+        background: linear-gradient(90deg, #43a047, #1b5e20);
+        transition: width 0.4s ease;
+      "></div>
+    </div>
+  </div>
+
+  <!-- Crosshair -->
+  <div id="crosshair" style="
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      pointer-events: none; z-index: 10; opacity: 0.7;
+  ">
+      <svg width="28" height="28" viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="2" fill="#e74c3c"/>
+        <circle cx="14" cy="14" r="5" stroke="#e74c3c" stroke-width="1.2" fill="none" opacity="0.5"/>
+        <line x1="14" y1="2" x2="14" y2="9" stroke="#fff" stroke-width="1.2" opacity="0.6"/>
+        <line x1="14" y1="19" x2="14" y2="26" stroke="#fff" stroke-width="1.2" opacity="0.6"/>
+        <line x1="2" y1="14" x2="9" y2="14" stroke="#fff" stroke-width="1.2" opacity="0.6"/>
+        <line x1="19" y1="14" x2="26" y2="14" stroke="#fff" stroke-width="1.2" opacity="0.6"/>
+      </svg>
+  </div>
+
+  <!-- HUD -->
+  <div id="game-hud" style="position: fixed; pointer-events: none; z-index: 10; inset: 0;">
+    <!-- Health Bar (top-left) -->
+    <div style="position: absolute; top: 20px; left: 24px; display: flex; align-items: center; gap: 10px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#e74c3c"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      <div id="health-bar-bg" style="width: 160px; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+        <div id="health-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #e74c3c, #c0392b); border-radius: 5px; transition: width 0.3s ease;"></div>
+      </div>
+      <span id="health-text" style="color: #e74c3c; font-weight: 600; font-size: 14px;">100</span>
+    </div>
+
+    <!-- Kill Counter (top-right) -->
+    <div style="position: absolute; top: 20px; right: 24px; text-align: right;">
+      <div style="color: rgba(255,255,255,0.4); font-size: 10px; text-transform: uppercase; letter-spacing: 2px;">Kills</div>
+      <div id="kill-count" style="color: #e74c3c; font-family: 'Creepster', cursive; font-size: 36px; line-height: 1;">0</div>
+    </div>
+
+    <!-- Wave Indicator (top-center) -->
+    <div id="wave-display" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); text-align: center;">
+      <div style="color: rgba(255,255,255,0.3); font-size: 10px; text-transform: uppercase; letter-spacing: 2px;">Wave</div>
+      <div id="wave-number" style="color: #fff; font-weight: 700; font-size: 20px;">1</div>
+    </div>
+
+    <!-- Controls (bottom) -->
+    <div style="
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+        color: rgba(255,255,255,0.35);
+        font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    ">
+        WASD Move &nbsp;•&nbsp; Space Jump &nbsp;•&nbsp; LMB Shoot &nbsp;•&nbsp; Mouse Aim &nbsp;•&nbsp; Scroll Zoom
+    </div>
+  </div>
+
+  <!-- Damage Vignette -->
+  <div id="damage-vignette" style="
+    position: fixed; inset: 0; z-index: 8; pointer-events: none; opacity: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(180,0,0,0.6) 100%);
+    transition: opacity 0.15s ease;
+  "></div>
+
+  <!-- Game Over Screen -->
+  <div id="game-over" style="
+    position: fixed; inset: 0; z-index: 9998; display: none;
+    background: rgba(10,0,0,0.85);
+    flex-direction: column; align-items: center; justify-content: center;
+  ">
+    <div style="font-family: 'Creepster', cursive; font-size: 64px; color: #c0392b; text-shadow: 0 0 40px rgba(192,57,43,0.6); margin-bottom: 10px;">
+      YOU DIED
+    </div>
+    <div id="final-kills" style="color: rgba(255,200,200,0.6); font-size: 16px; margin-bottom: 32px;">Kills: 0</div>
+    <button id="restart-btn" onclick="location.reload()" style="
+      padding: 14px 40px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;
+      color: #fff; background: #c0392b; border: none; border-radius: 8px; cursor: pointer;
+      letter-spacing: 1px; text-transform: uppercase;
+      transition: background 0.2s, transform 0.1s;
+    ">Play Again</button>
+  </div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
