@@ -570,9 +570,13 @@ function updateZombies(dt) {
       continue;
     }
     
-    // Distance to player
-    const dx = playerPos.x - z.model.position.x;
-    const dz = playerPos.z - z.model.position.z;
+    // Distance to player using the true visual center
+    const offset = z.colliderOffset.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), z.model.rotation.y);
+    const colX = z.model.position.x + offset.x;
+    const colZ = z.model.position.z + offset.z;
+    
+    const dx = playerPos.x - colX;
+    const dz = playerPos.z - colZ;
     const dist = Math.sqrt(dx * dx + dz * dz);
     
     // Terror timer (random scream)
@@ -607,9 +611,9 @@ function updateZombies(dt) {
       // Face player during attack
       z.model.rotation.y = Math.atan2(dx, dz);
       z.attackCooldown -= dt;
-      // Damage only at attack animation midpoint (~1.3s into 2.67s attack)
-      if (!z.attackDamageDealt && z.attackCooldown < ZOMBIE_ATTACK_COOLDOWN - 1.0) {
-        if (dist < ZOMBIE_ATTACK_RANGE + 1.0) {
+      // Damage at attack animation midpoint
+      if (!z.attackDamageDealt && z.attackCooldown < ZOMBIE_ATTACK_COOLDOWN - 0.5) {
+        if (dist < ZOMBIE_ATTACK_RANGE + 1.5) {
           damagePlayer(ZOMBIE_DAMAGE);
         }
         z.attackDamageDealt = true;
