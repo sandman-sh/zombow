@@ -301,9 +301,11 @@ try {
     zScene.scale.setScalar(ZOMBIE_HEIGHT / zH);
     zScene.updateMatrixWorld(true);
     const scaledZBox = new THREE.Box3().setFromObject(zScene);
+    const center = scaledZBox.getCenter(new THREE.Vector3());
+    const colliderOffset = new THREE.Vector3(center.x, 0, center.z);
     // Do not manually shift children — it breaks the zombie's natural pivot point!
     // We just set footOffset if needed, but since we scale from origin, footOffset is mostly just -scaledZBox.min.y
-    zombieTemplates.push({ scene: zScene, animations: zModel.animations, footOffset: -scaledZBox.min.y });
+    zombieTemplates.push({ scene: zScene, animations: zModel.animations, footOffset: -scaledZBox.min.y, colliderOffset: colliderOffset });
     setLoading(`Spawning zombies… ${zi + 1}/${zombieFiles.length}`, 55 + Math.round(((zi + 1) / zombieFiles.length) * 10));
   }
 
@@ -413,6 +415,7 @@ function spawnZombie() {
     mixer: mixer,
     actions: actions,
     footOffset: template.footOffset,
+    colliderOffset: template.colliderOffset,
     audio: zAudio,
     state: 'walk',
     currentAnim: 'walk',
@@ -717,12 +720,16 @@ function updateArrows(dt) {
       const midY = (oldPosY + a.mesh.position.y) * 0.5;
       const midZ = (oldPosZ + a.mesh.position.z) * 0.5;
       
-      const dx1 = a.mesh.position.x - z.model.position.x;
-      const dz1 = a.mesh.position.z - z.model.position.z;
+      const offset = z.colliderOffset.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), z.model.rotation.y);
+      const colX = z.model.position.x + offset.x;
+      const colZ = z.model.position.z + offset.z;
+      
+      const dx1 = a.mesh.position.x - colX;
+      const dz1 = a.mesh.position.z - colZ;
       const dy1 = a.mesh.position.y - z.model.position.y;
       
-      const dx2 = midX - z.model.position.x;
-      const dz2 = midZ - z.model.position.z;
+      const dx2 = midX - colX;
+      const dz2 = midZ - colZ;
       const dy2 = midY - z.model.position.y;
       
       const distSq1 = dx1 * dx1 + dz1 * dz1;
