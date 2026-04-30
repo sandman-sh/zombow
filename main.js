@@ -624,11 +624,22 @@ function updateZombies(dt) {
         z.attackDamageDealt = false;
         playZombieAnim(z, 'attack');
       } else if (dist < ZOMBIE_DETECT_RANGE && dist > 0) {
-        // Walk toward player
+        // Walk toward player with Tree Collision
         const moveX = (dx / dist) * ZOMBIE_SPEED * dt;
         const moveZ = (dz / dist) * ZOMBIE_SPEED * dt;
-        z.model.position.x += moveX;
-        z.model.position.z += moveZ;
+        
+        let nx = z.model.position.x + moveX;
+        let nz = z.model.position.z + moveZ;
+        
+        if (checkTreeCollision(nx, z.model.position.z)) {
+          nx = z.model.position.x; // Block X if hitting a tree
+        }
+        if (checkTreeCollision(z.model.position.x, nz)) {
+          nz = z.model.position.z; // Block Z if hitting a tree
+        }
+        
+        z.model.position.x = nx;
+        z.model.position.z = nz;
         // Smooth face toward player
         const targetRot = Math.atan2(dx, dz);
         let rotDiff = targetRot - z.model.rotation.y;
